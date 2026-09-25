@@ -29,9 +29,10 @@ function test(desc, fn) {
 }
 
 let seq = 0;
+const transcriptDir = fs.mkdtempSync(path.join(os.tmpdir(), 'llm-summary-test-'));
 function writeTranscript(lines) {
   seq++;
-  const p = path.join(os.tmpdir(), `llm-summary-test-${process.pid}-${seq}.jsonl`);
+  const p = path.join(transcriptDir, `transcript-${seq}.jsonl`);
   fs.writeFileSync(p, lines.join('\n') + '\n');
   return p;
 }
@@ -189,6 +190,14 @@ test('returns null for missing transcript (no conversation to summarize)', () =>
   delete process.env.ECC_SKIP_LLM_SUMMARY;
   assert.strictEqual(generateSessionSummary('/nonexistent.jsonl'), null);
   if (orig !== undefined) process.env.ECC_SKIP_LLM_SUMMARY = orig;
+});
+
+test('marks the spawned summarizer so its Stop hook cannot create resume state', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'scripts', 'lib', 'llm-summary.js'),
+    'utf8'
+  );
+  assert.match(source, /ECC_LLM_SUMMARY_SUBPROCESS:\s*'1'/);
 });
 
 // --- Results ---
